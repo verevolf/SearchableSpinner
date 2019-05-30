@@ -76,7 +76,7 @@ public class SpinnerDialog {
             showKeyboard(searchBox);
         }
 //        final ArrayAdapter<String> adapter = new ArrayAdapter<String>(context, R.layout.items_view, items);
-        final ArrayAdapterWithContainsFilter<String> adapter = new ArrayAdapterWithContainsFilter<String>(context, R.layout.items_view, items);
+        final ArrayAdapterWithContainsFilter<String> adapter = new ArrayAdapterWithContainsFilter<String>(context, R.layout.items_view, new ArrayList<>(items));
         listView.setAdapter(adapter);
         adb.setView(v);
         alertDialog = adb.create();
