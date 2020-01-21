@@ -41,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
 
         spinnerDialog.setCancellable(true);
         spinnerDialog.setShowKeyboard(false);
+        spinnerDialog.setUseContainsFilter(true);
 
         spinnerDialog.bindOnSpinerListener(new OnSpinerItemClick() {
             @Override

@@ -21,14 +21,15 @@ import java.util.ArrayList;
 public class SpinnerDialog {
     ArrayList<String> items;
     Activity context;
-    String dTitle,closeTitle="Close";
+    String dTitle, closeTitle = "Close";
     OnSpinerItemClick onSpinerItemClick;
     AlertDialog alertDialog;
     int pos;
     int style;
-    boolean cancellable=false;
-    boolean showKeyboard=false;
-    boolean useContainsFilter=false;
+    boolean cancellable = false;
+    boolean showKeyboard = false;
+    boolean useContainsFilter = false;
+    int selectedPosition = -1;
 
 
     public SpinnerDialog(Activity activity, ArrayList<String> items, String dialogTitle) {
@@ -37,11 +38,11 @@ public class SpinnerDialog {
         this.dTitle = dialogTitle;
     }
 
-    public SpinnerDialog(Activity activity, ArrayList<String> items, String dialogTitle,String closeTitle) {
+    public SpinnerDialog(Activity activity, ArrayList<String> items, String dialogTitle, String closeTitle) {
         this.items = items;
         this.context = activity;
         this.dTitle = dialogTitle;
-        this.closeTitle=closeTitle;
+        this.closeTitle = closeTitle;
     }
 
     public SpinnerDialog(Activity activity, ArrayList<String> items, String dialogTitle, int style) {
@@ -51,19 +52,26 @@ public class SpinnerDialog {
         this.style = style;
     }
 
-    public SpinnerDialog(Activity activity, ArrayList<String> items, String dialogTitle, int style,String closeTitle) {
+    public SpinnerDialog(Activity activity, ArrayList<String> items, String dialogTitle, int style, String closeTitle) {
         this.items = items;
         this.context = activity;
         this.dTitle = dialogTitle;
         this.style = style;
-        this.closeTitle=closeTitle;
+        this.closeTitle = closeTitle;
     }
 
     public void bindOnSpinerListener(OnSpinerItemClick onSpinerItemClick1) {
         this.onSpinerItemClick = onSpinerItemClick1;
     }
 
-    public void showSpinerDialog() {
+    public void showSpinnerDialog() {
+        showSpinnerDialog(null);
+    }
+
+    public void showSpinnerDialog(final Integer selected) {
+        if (selected != null && selected >= 0 && selected < items.size()) {
+            this.selectedPosition = selected;
+        }
         AlertDialog.Builder adb = new AlertDialog.Builder(context);
         View v = context.getLayoutInflater().inflate(R.layout.dialog_layout, null);
         TextView rippleViewClose = (TextView) v.findViewById(R.id.close);
@@ -72,16 +80,26 @@ public class SpinnerDialog {
         title.setText(dTitle);
         final ListView listView = (ListView) v.findViewById(R.id.list);
         final EditText searchBox = (EditText) v.findViewById(R.id.searchBox);
-        if(isShowKeyboard()){
+        if (isShowKeyboard()) {
             showKeyboard(searchBox);
         }
-//        final ArrayAdapter<String> adapter = new ArrayAdapter<String>(context, R.layout.items_view, items);
+
         final ArrayAdapterWithContainsFilter<String> adapter = new ArrayAdapterWithContainsFilter<String>(context, R.layout.items_view, new ArrayList<>(items));
         listView.setAdapter(adapter);
         adb.setView(v);
         alertDialog = adb.create();
-        alertDialog.getWindow().getAttributes().windowAnimations = style;//R.style.DialogAnimations_SmileWindow;
+        alertDialog.getWindow().getAttributes().windowAnimations = style;
 
+        if (selectedPosition >= 0 && !items.isEmpty()) {
+            listView.post(new Runnable() {
+                @Override
+                public void run() {
+                    adapter.setSelectedPosition(selectedPosition);
+                    adapter.notifyDataSetChanged();
+                    listView.setSelectionFromTop(selectedPosition, listView.getMeasuredHeight() / 2 - listView.getChildAt(0).getMeasuredHeight());
+                }
+            });
+        }
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
@@ -109,11 +127,18 @@ public class SpinnerDialog {
 
             @Override
             public void afterTextChanged(Editable editable) {
-                if(isUseContainsFilter()){
-                    adapter.getContainsFilter(searchBox.getText().toString());
+                String text = searchBox.getText().toString();
+                if (text.length() > 0) {
+                    adapter.setSelectedPosition(-1);
                 } else {
-                    adapter.getFilter().filter(searchBox.getText().toString());
+                    adapter.setSelectedPosition(selectedPosition);
                 }
+                if (isUseContainsFilter()) {
+                    adapter.getContainsFilter(text);
+                } else {
+                    adapter.getFilter().filter(text);
+                }
+                listView.setSelectionAfterHeaderView();
             }
         });
 
@@ -135,7 +160,7 @@ public class SpinnerDialog {
         }
     }
 
-    private void hideKeyboard(){
+    private void hideKeyboard() {
         try {
             InputMethodManager inputManager = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
             inputManager.hideSoftInputFromWindow(context.getCurrentFocus().getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
@@ -143,15 +168,16 @@ public class SpinnerDialog {
         }
     }
 
-    private void showKeyboard(final EditText ettext){
+    private void showKeyboard(final EditText ettext) {
         ettext.requestFocus();
-        ettext.postDelayed(new Runnable(){
-                               @Override public void run(){
-                                   InputMethodManager keyboard=(InputMethodManager)context.getSystemService(Context.INPUT_METHOD_SERVICE);
-                                   keyboard.showSoftInput(ettext,0);
+        ettext.postDelayed(new Runnable() {
+                               @Override
+                               public void run() {
+                                   InputMethodManager keyboard = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
+                                   keyboard.showSoftInput(ettext, 0);
                                }
                            }
-                ,200);
+                , 200);
     }
 
     private boolean isCancellable() {
